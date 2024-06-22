@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy NestJS App to EC2
 
 on:
   push:
@@ -6,24 +6,40 @@ on:
       - master
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          node-version: '18' # Use the appropriate version for your app
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the project
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
 
       - name: Deploy to EC2
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd nestjs-app-ec2
-            git pull origin master
-            npm install
-            npm run build
-            pm2 restart all || pm2 start dist/main.js --name "hello-world"
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          scp -o StrictHostKeyChecking=no -i private_key -r ./dist $EC2_USER@$EC2_HOST:/home/$EC2_USER/nodejs-app-ec2/
+          ssh -o StrictHostKeyChecking=no -i private_key $EC2_USER@$EC2_HOST << 'EOF'
+            cd /home/$EC2_USER/nodejs-app-ec2
+            npm install --production
+            pm2 stop all
+            pm2 start dist/main.js --name nestjs-app-ec2
+            pm2 save
           EOF
