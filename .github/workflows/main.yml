@@ -24,6 +24,9 @@ jobs:
       - name: Build the project
         run: npm run build
 
+      - name: Verify build output
+        run: ls -la dist
+
       - name: Deploy to EC2
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -31,12 +34,13 @@ jobs:
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key
-          chmod 600 private_key
+          chmod 400 private_key
           scp -o StrictHostKeyChecking=no -i private_key -r ./dist $EC2_USER@$EC2_HOST:/home/$EC2_USER/nodejs-app-ec2/
           ssh -o StrictHostKeyChecking=no -i private_key $EC2_USER@$EC2_HOST << 'EOF'
-            cd /home/$EC2_USER/nodejs-app-ec2
+            cd /home/$EC2_USER/nodejs-app-ec2/
             npm install --production
-            pm2 stop all
-            pm2 start dist/main.js --name nestjs-app-ec2
+            ls -la dist # Verify the contents of the dist directory
+            pm2 stop nestjs-app || true
+            pm2 start dist/main.js --name nestjs-app
             pm2 save
           EOF
