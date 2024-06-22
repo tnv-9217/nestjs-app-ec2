@@ -40,7 +40,7 @@ jobs:
             cd /home/ubuntu/nodejs-app-ec2/
             npm install --production
             ls -la dist # Verify the contents of the dist directory
-            pm2 stop nodejs-app-ec2 || true
+            pm2 stop nestjs-app || true
             pm2 start dist/main.js --name nestjs-app
             pm2 save
           EOF
