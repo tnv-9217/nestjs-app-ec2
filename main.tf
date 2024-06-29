@@ -3,8 +3,8 @@
 # Configure the AWS provider
 provider "aws" {
   region     = "us-east-1"
-  access_key = "AKIA2FDKIHHPMMZ2OYGK"
-  secret_key = "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"
+  access_key = "***"
+  secret_key = "******"
 }
 
 # Define the EC2 instance
